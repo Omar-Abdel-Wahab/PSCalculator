@@ -1,6 +1,40 @@
 from tkinter import *
 from tkinter import ttk
 from tkinter.font import Font
+from database import Database
+import concurrent.futures as cf
+
+# Connect or create the database #
+
+
+def initialize_database():
+    db = Database('configurations.db')
+    i, m, u, p = db.fetch_needed_data()
+
+    return i, m, u, p
+
+
+with cf.ThreadPoolExecutor() as executor:
+    returned = executor.submit(initialize_database)
+
+items = returned.result()[0]
+items_names = []
+items_prices = []
+
+for item in items:
+    items_names.append(item[0])
+    items_prices.append(item[1])
+
+items = dict(zip(items_names, items_prices))
+
+machines = returned.result()[1][0]
+users = returned.result()[2]
+prices = returned.result()[3]
+
+print(items)
+print(machines)
+print(users)
+print(prices)
 
 # First, create the main window (root) that will hold all components, adjust properties and center it #
 
