@@ -3,38 +3,56 @@ from tkinter import ttk
 from tkinter.font import Font
 from database import Database
 import concurrent.futures as cf
-
-# Connect or create the database #
+import threading
+import datetime
 
 
 def initialize_database():
+    """Create/ Connect to the database and fetch the required data"""
     db = Database('configurations.db')
     i, m, u, p = db.fetch_needed_data()
 
     return i, m, u, p
 
 
+def from_thread_result_to_dictionary(returned_result):
+    """Turn the result returned from a thread into a dictionary"""
+    keys = []
+    values = []
+
+    for returned_result_item in returned_result:
+        keys.append(returned_result_item[0])
+        values.append(returned_result_item[1])
+
+    dictionary = dict(zip(keys, values))
+    return dictionary
+
+
+def create_machines_tuple(value):
+    """Create a tuple of machines numbers"""
+    tuple_values = []
+
+    for j in range(1, value + 1):
+        tuple_values.append(j)
+
+    return tuple(tuple_values)
+
+
 with cf.ThreadPoolExecutor() as executor:
     returned = executor.submit(initialize_database)
+    returned_items = returned.result()[0]
+    returned_machines = returned.result()[1][0]
+    returned_users = returned.result()[2]
+    returned_prices = returned.result()[3]
+    arguments = [returned_items, returned_users, returned_prices]
+    returned_machines_result = executor.submit(create_machines_tuple, returned_machines)
+    returned_results = executor.map(from_thread_result_to_dictionary, arguments)
+    returned_results = list(returned_results)
 
-items = returned.result()[0]
-items_names = []
-items_prices = []
-
-for item in items:
-    items_names.append(item[0])
-    items_prices.append(item[1])
-
-items = dict(zip(items_names, items_prices))
-
-machines = returned.result()[1][0]
-users = returned.result()[2]
-prices = returned.result()[3]
-
-print(items)
-print(machines)
-print(users)
-print(prices)
+items = returned_results[0]
+users = returned_results[1]
+prices = returned_results[2]
+machines = returned_machines_result.result()
 
 # First, create the main window (root) that will hold all components, adjust properties and center it #
 
@@ -61,6 +79,11 @@ def center(window):
     window.geometry("+%d+%d" % (x, y))
 
 
+added_items_frames = []
+added_item_comboboxes = []
+added_item_quantity_spinboxes = []
+
+
 def add_item():
     """Add another beverage or so to be calculated along with the main beverage and the time in which the customers
     played"""
@@ -70,11 +93,18 @@ def add_item():
     pending_operations_frame.pack_forget()
 
     added_items_frame = Frame(calculation_frame)
+    added_items_frames.append(added_items_frame)
     added_item_name_label = Label(added_items_frame, text='المشروب/ المأكول')
+
     added_item_name_var = StringVar()
     added_item_combobox = ttk.Combobox(added_items_frame, textvariable=added_item_name_var)
+    added_item_comboboxes.append(added_item_combobox)
+    added_item_combobox["values"] = tuple(items.keys())
+
     added_item_quantity_label = Label(added_items_frame, text='الكمية')
-    added_item_quantity_spinbox = Spinbox(added_items_frame, from_=0, font=Font(size=11))
+    added_item_quantity_spinbox = Spinbox(added_items_frame, from_=0, to=20, font=Font(size=11))
+    added_item_quantity_spinboxes.append(added_item_quantity_spinbox)
+
     added_item_name_label.pack(side=RIGHT, padx=10, pady=5, expand=True)
     added_item_combobox.pack(side=RIGHT, padx=10, pady=5, expand=True)
     added_item_quantity_label.pack(side=RIGHT, padx=10, pady=5, expand=True)
@@ -84,6 +114,41 @@ def add_item():
     item_add_button.pack(padx=10, pady=20)
     playstation_frame.pack()
     pending_operations_frame.pack(pady=40)
+
+
+def reset():
+    """Reset the main window back to its normal form"""
+    for frame in added_items_frames:
+        frame.destroy()
+
+
+def calculate():
+    hour_end = int(hour_end_spinbox.get())
+    minute_end = int(minute_end_spinbox.get())
+    hour_start = int(hour_start_spinbox.get())
+    minute_start = int(minute_start_spinbox.get())
+    main_item = item_combobox.get()
+    main_quantity = int(item_quantity_spinbox.get())
+    extra_items = []
+    extra_quantities = []
+    for added_item in added_item_comboboxes:
+        extra_items.append(added_item.get())
+    for added_item_quantity in added_item_quantity_spinboxes:
+        extra_quantities.append(added_item_quantity.get())
+    price_name = playstation_prices_combobox.get()
+    start_time = datetime.time(hour_start, minute_start)
+    end_time = datetime.time(hour_end, minute_end)
+    time_difference = datetime.datetime.combine(datetime.date.today(), end_time) - \
+                      datetime.datetime.combine(datetime.date.today(), start_time)
+    total_time = time_difference.total_seconds() / 3600
+    total_items = 0
+    for index in range(len(extra_items)):
+        if extra_items[index] != '':
+            total_items += int(extra_quantities[index]) * items[extra_items[index]]
+    if main_item != '':
+        total_items += main_quantity * items[main_item]
+    total = total_time * prices[price_name] + total_items
+    playstation_calculate_label.configure(text=str(total))
 
 
 center(root)
@@ -169,8 +234,9 @@ items_frame = Frame(calculation_frame)
 item_name_label = Label(items_frame, text='المشروب/ المأكول')
 item_name_var = StringVar()
 item_combobox = ttk.Combobox(items_frame, textvariable=item_name_var)
+item_combobox["values"] = tuple(items.keys())
 item_quantity_label = Label(items_frame, text='الكمية')
-item_quantity_spinbox = Spinbox(items_frame, from_=0, font=Font(size=11))
+item_quantity_spinbox = Spinbox(items_frame, from_=0, to=20, font=Font(size=11))
 item_add_button = Button(calculation_frame, text='إضافة مشروب/ مأكول أخر', command=add_item)
 
 # Packing the labels, spinboxes and the container frame
@@ -190,15 +256,23 @@ playstation_frame = Frame(calculation_frame)
 # Creating a Label and Combobox for Playstation machines and a Calculate button
 playstation_number_label = Label(playstation_frame, text='الجهاز')
 playstation_number_var = StringVar()
-playstation_combobox = ttk.Combobox(playstation_frame, textvariable=playstation_number_var)
-playstation_calculate_button = Button(playstation_frame, text='حساب')
+playstation_numbers_combobox = ttk.Combobox(playstation_frame, textvariable=playstation_number_var)
+playstation_numbers_combobox["values"] = machines
+playstation_price_var = StringVar()
+playstation_prices_combobox = ttk.Combobox(playstation_frame, textvariable=playstation_price_var)
+playstation_prices_combobox["values"] = tuple(prices.keys())
+playstation_prices_combobox.current(0)
+playstation_calculate_button = Button(playstation_frame, text='حساب', command=calculate)
 playstation_calculate_label = Label(playstation_frame, text='الحساب هنا')
+playstation_reset_button = Button(playstation_frame, text='Reset', command=reset)
 
 # Packing the labels, combobox, button and the container frame
 playstation_number_label.pack(side=RIGHT, padx=10, pady=5, expand=True)
-playstation_combobox.pack(side=RIGHT, padx=10, pady=5, expand=True)
+playstation_numbers_combobox.pack(side=RIGHT, padx=10, pady=5, expand=True)
+playstation_prices_combobox.pack(side=RIGHT, padx=10, pady=5, expand=True)
 playstation_calculate_button.pack(side=RIGHT, padx=10, pady=5, expand=True)
 playstation_calculate_label.pack(side=RIGHT, padx=10, pady=5, expand=True)
+playstation_reset_button.pack(side=RIGHT, padx=10, pady=5, expand=True)
 playstation_frame.pack()
 
 # 5) A) Create the first part of pending_calculations frame by creating the necessary buttons (Add, Edit, Delete) #
