@@ -14,7 +14,7 @@ class Database:
         self.cur.execute(
             "CREATE TABLE IF NOT EXISTS prices (name text PRIMARY KEY, price integer)")
         self.cur.execute(
-            """CREATE TABLE IF NOT EXISTS calculations (day integer, month integer, price integer,
+            """CREATE TABLE IF NOT EXISTS calculations (day integer, month integer, year integer,
                     starthour integer, startminute integer, endhour integer, endminute integer,
                     items text, machine integer, calculation integer)""")
         self.conn.commit()
@@ -39,9 +39,9 @@ class Database:
         rows = self.cur.fetchall()
         return rows
 
-    def fetch_calculations(self):
+    def fetch_calculations(self, day, month, year):
         # Will need a date parameter
-        self.cur.execute("SELECT * FROM calculations")
+        self.cur.execute("SELECT * FROM calculations WHERE day=? and month=? and year=?", (day, month, year))
         rows = self.cur.fetchall()
         return rows
 

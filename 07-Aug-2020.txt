@@ -1,0 +1,73 @@
+Start: 01:00:00
+End: 01:00:00
+Difference: 0:00:00
+Item(s): 
+Machine: 1
+Price: 0
+
+----------------
+
+Start: 01:00:00
+End: 01:00:00
+Difference: 0:00:00
+Item(s): 
+Machine: 1
+Price: 0
+
+----------------
+
+Start: 01:00:00
+End: 02:00:00
+Difference: 1:00:00
+Item(s): 
+Machine: 1
+Price: 20
+
+----------------
+
+Start: 01:00:00
+End: 02:00:00
+Difference: 1:00:00
+Item(s): 
+Machine: 1
+Price: 20
+
+----------------
+
+Start: 01:00:00
+End: 02:00:00
+Difference: 1:00:00
+Item(s): شاي
+Machine: 1
+Price: 23
+
+----------------
+
+Start: 01:00:00
+End: 02:00:00
+Difference: 1:00:00
+Item(s): شاي
+Machine: 1
+Price: 23
+
+----------------
+
+Start: 01:00:00
+End: 02:00:00
+Difference: 1:00:00
+Item(s): شاي
+Machine: 1
+Price: 23
+
+----------------
+
+Start: 01:00:00
+End: 02:00:00
+Difference: 1:00:00
+Item(s): شاي, ينسون
+Machine: 1
+Price: 26
+
+----------------
+
+Total is: 135
