@@ -107,6 +107,11 @@ def add_item():
     added_item_quantity_spinbox = Spinbox(added_items_frame, from_=0, to=20, font=Font(size=11))
     added_item_quantity_spinboxes.append(added_item_quantity_spinbox)
 
+    def select_added_item_quantity(event):
+        added_item_quantity_spinbox.selection_range(0, END)
+
+    added_item_quantity_spinbox.bind("<FocusIn>", select_added_item_quantity)
+
     added_item_name_label.pack(side=RIGHT, padx=10, pady=5, expand=True)
     added_item_combobox.pack(side=RIGHT, padx=10, pady=5, expand=True)
     added_item_quantity_label.pack(side=RIGHT, padx=10, pady=5, expand=True)
@@ -222,7 +227,48 @@ def bring_records_to_file():
     threading.Thread(target=bring_records_to_file_using_threads).start()
 
 
+def select_day_entry(event):
+    day_entry.selection_range(0, END)
+
+
+def select_month_entry(event):
+    month_entry.selection_range(0, END)
+
+
+def select_year_entry(event):
+    year_entry.selection_range(0, END)
+
+
+def select_hour_end(event):
+    hour_end_spinbox.selection_range(0, END)
+
+
+def select_minute_end(event):
+    minute_end_spinbox.selection_range(0, END)
+
+
+def select_hour_start(event):
+    hour_start_spinbox.selection_range(0, END)
+
+
+def select_minute_start(event):
+    minute_start_spinbox.selection_range(0, END)
+
+
+def select_item_quantity(event):
+    item_quantity_spinbox.selection_range(0, END)
+
+
+def select_playstation_number(event):
+    playstation_numbers_combobox.selection_range(0, END)
+
+
+def select_price_name(event):
+    playstation_prices_combobox.selection_range(0, END)
+
+
 center(root)
+root.iconbitmap('res/images/newplaystationicon.ico')
 
 # 1) Creating the Notebook which will carry the tabs (Calculation, Saved_Calculation) #
 
@@ -273,6 +319,11 @@ minute_end_spinbox = Spinbox(minute_end_frame, from_=0, to=59, font=Font(size=11
 hour_start_spinbox = Spinbox(hour_start_frame, from_=1, to=12, font=Font(size=11))
 minute_start_spinbox = Spinbox(minute_start_frame, from_=0, to=59, font=Font(size=11))
 
+hour_end_spinbox.bind("<FocusIn>", select_hour_end)
+minute_end_spinbox.bind("<FocusIn>", select_minute_end)
+hour_start_spinbox.bind("<FocusIn>", select_hour_start)
+minute_start_spinbox.bind("<FocusIn>", select_minute_start)
+
 # Packing the labels, spinboxes and the container frame
 start_label.pack(side=RIGHT, padx=5, pady=48, anchor='n', expand=True)
 
@@ -307,7 +358,10 @@ item_name_var = StringVar()
 item_combobox = ttk.Combobox(items_frame, textvariable=item_name_var)
 item_combobox["values"] = tuple(items.keys())
 item_quantity_label = Label(items_frame, text='الكمية')
+
 item_quantity_spinbox = Spinbox(items_frame, from_=0, to=20, font=Font(size=11))
+item_quantity_spinbox.bind("<FocusIn>", select_item_quantity)
+
 item_add_button = Button(calculation_frame, text='إضافة مشروب/ مأكول أخر', command=add_item)
 
 # Packing the labels, spinboxes and the container frame
@@ -330,10 +384,12 @@ playstation_number_var = StringVar()
 playstation_numbers_combobox = ttk.Combobox(playstation_frame, textvariable=playstation_number_var)
 playstation_numbers_combobox["values"] = machines
 playstation_numbers_combobox.current(0)
+playstation_numbers_combobox.bind("<FocusIn>", select_playstation_number)
 playstation_price_var = StringVar()
 playstation_prices_combobox = ttk.Combobox(playstation_frame, textvariable=playstation_price_var)
 playstation_prices_combobox["values"] = tuple(prices.keys())
 playstation_prices_combobox.current(0)
+playstation_prices_combobox.bind("<FocusIn>", select_price_name)
 playstation_calculate_button = Button(playstation_frame, text='حساب', command=calculate)
 playstation_calculate_label = Label(playstation_frame, text='الحساب هنا')
 playstation_reset_button = Button(playstation_frame, text='Reset', command=reset)
@@ -405,23 +461,26 @@ username_entry = Entry(username_frame, textvariable=username_var)
 
 password_label = Label(password_frame, text='كلمة السر')
 password_var = StringVar()
-password_entry = Entry(password_frame, textvariable=password_var)
+password_entry = Entry(password_frame, textvariable=password_var, show='*')
 
 date_of_today = datetime.datetime.today()
 day_label = Label(date_frame, text='اليوم')
 day_var = StringVar()
 day_var.set(str(date_of_today.day))
 day_entry = Entry(date_frame, textvariable=day_var)
+day_entry.bind("<FocusIn>", select_day_entry)
 
 month_label = Label(date_frame, text='الشهر')
 month_var = StringVar()
 month_var.set(str(date_of_today.month))
 month_entry = Entry(date_frame, textvariable=month_var)
+month_entry.bind("<FocusIn>", select_month_entry)
 
 year_label = Label(date_frame, text='السنة')
 year_var = StringVar()
 year_var.set(str(date_of_today.year))
 year_entry = Entry(date_frame, textvariable=year_var)
+year_entry.bind("<FocusIn>", select_year_entry)
 
 records_button = Button(saved_calculations_frame, text='جلب سجلات اليوم', command=bring_records_to_file)
 
