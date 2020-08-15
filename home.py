@@ -5,6 +5,7 @@ from database import Database
 import concurrent.futures as cf
 import threading
 import datetime
+import ast
 
 database_name = 'configurations.db'
 
@@ -50,6 +51,7 @@ with cf.ThreadPoolExecutor() as executor:
     returned_machines_result = executor.submit(create_machines_tuple, returned_machines)
     returned_results = executor.map(from_thread_result_to_dictionary, arguments)
     returned_results = list(returned_results)
+    # print(returned_machines)
 
 items = returned_results[0]
 users = returned_results[1]
@@ -129,6 +131,21 @@ def reset():
         frame.destroy()
     added_item_comboboxes.clear()
     added_item_quantity_spinboxes.clear()
+    hour_end_spinbox.delete(0, END)
+    hour_end_spinbox.insert(0, '1')
+    hour_start_spinbox.delete(0, END)
+    hour_start_spinbox.insert(0, '1')
+    minute_end_spinbox.delete(0, END)
+    minute_end_spinbox.insert(0, '0')
+    minute_start_spinbox.delete(0, END)
+    minute_start_spinbox.insert(0, '0')
+    item_combobox.set('')
+    item_quantity_spinbox.delete(0, END)
+    item_quantity_spinbox.insert(0, '0')
+    playstation_numbers_combobox.set('1')
+    playstation_prices_combobox.set('Single-20')
+    playstation_calculate_label.config(text='0.0')
+    playstation_pending_calculation_label.config(text='0.0')
 
 
 def calculate_using_threads():
@@ -140,6 +157,7 @@ def calculate_using_threads():
     main_item = item_combobox.get()
     main_quantity = int(item_quantity_spinbox.get())
     machine_number = int(playstation_numbers_combobox.get())
+    pending_calculation = float(playstation_pending_calculation_label.cget('text'))
     extra_items = []
     extra_quantities = []
     for added_item in added_item_comboboxes:
@@ -163,12 +181,14 @@ def calculate_using_threads():
             total_items_string += extra_items[index] + ', '
     if total_items_string != '':
         total_items_string = total_items_string[:-2]
-    total = total_time * prices[price_name] + total_items
+    total = total_time * prices[price_name] + total_items + pending_calculation
+    playstation_pending_calculation_label.config(text='0.0')
     playstation_calculate_label.configure(text=str(total))
     today = datetime.datetime.today()
     db = Database(database_name)
     db.insert_into_calculations(today.day, today.month, today.year, start_time.hour, start_time.minute,
-                                end_time.hour, end_time.minute, total_items_string, machine_number, total)
+                                end_time.hour, end_time.minute, total_items_string, machine_number,
+                                total - pending_calculation)
     # print(today.year, today.month, today.day, today.hour, today.minute)
 
 
@@ -265,6 +285,83 @@ def select_playstation_number(event):
 
 def select_price_name(event):
     playstation_prices_combobox.selection_range(0, END)
+
+
+def add_to_listbox():
+    machine_number = playstation_numbers_combobox.get()
+    all_listbox_items = pending_operations_listbox.get(0, END)
+    all_dictionaries = []
+    for listbox_item in all_listbox_items:
+        all_dictionaries.append(ast.literal_eval(listbox_item))
+
+    for dictionary in all_dictionaries:
+        if dictionary['machine'] == machine_number:
+            return
+    hour_end = hour_end_spinbox.get()
+    minute_end = minute_end_spinbox.get()
+    hour_start = hour_start_spinbox.get()
+    minute_start = minute_start_spinbox.get()
+    main_item = item_combobox.get()
+    main_quantity = item_quantity_spinbox.get()
+    calculation = playstation_calculate_label.cget('text')
+    extra_items = []
+    extra_quantities = []
+    for added_item in added_item_comboboxes:
+        extra_items.append(added_item.get())
+    for added_item_quantity in added_item_quantity_spinboxes:
+        extra_quantities.append(added_item_quantity.get())
+    price_name = playstation_prices_combobox.get()
+    pending_dictionary = {'machine': machine_number, 'he': hour_end, 'me': minute_end, 'hs': hour_start,
+                          'ms': minute_start, 'mi': main_item, 'mq': main_quantity, 'ei': extra_items,
+                          'eq': extra_quantities, 'pn': price_name, 'ca': calculation}
+    pending_operations_listbox.insert(END, pending_dictionary)
+    playstation_calculate_label.config(text='0.0')
+
+
+def delete_from_listbox():
+    try:
+        index = pending_operations_listbox.curselection()[0]
+        pending_operations_listbox.delete(index)
+    except IndexError:
+        pass
+
+
+def select_listbox_item(event):
+    global selected_listbox_item
+    try:
+        index = pending_operations_listbox.curselection()[0]
+    except IndexError:
+        pass
+    except UnboundLocalError:
+        pass
+    reset()
+    selected_listbox_item = pending_operations_listbox.get(index)
+    selected_listbox_item = ast.literal_eval(selected_listbox_item)
+    minute_start_spinbox.delete(0, END)
+    minute_start_spinbox.insert(0, selected_listbox_item['ms'])
+    minute_end_spinbox.delete(0, END)
+    minute_end_spinbox.insert(0, selected_listbox_item['me'])
+    hour_start_spinbox.delete(0, END)
+    hour_start_spinbox.insert(0, selected_listbox_item['hs'])
+    hour_end_spinbox.delete(0, END)
+    hour_end_spinbox.insert(0, selected_listbox_item['he'])
+    item_combobox.delete(0, END)
+    item_combobox.insert(0, selected_listbox_item['mi'])
+    item_quantity_spinbox.delete(0, END)
+    item_quantity_spinbox.insert(0, selected_listbox_item['mq'])
+    playstation_numbers_combobox.delete(0, END)
+    playstation_numbers_combobox.insert(0, selected_listbox_item['machine'])
+    playstation_prices_combobox.delete(0, END)
+    playstation_prices_combobox.insert(0, selected_listbox_item['pn'])
+    playstation_pending_calculation_label.config(text=selected_listbox_item['ca'])
+    extra_items = selected_listbox_item['ei']
+    extra_quantities = selected_listbox_item['eq']
+
+    for index in range(len(extra_items)):
+        add_item()
+        added_item_comboboxes[index].insert(0, extra_items[index])
+        added_item_quantity_spinboxes[index].delete(0, END)
+        added_item_quantity_spinboxes[index].insert(0, extra_quantities[index])
 
 
 center(root)
@@ -391,8 +488,10 @@ playstation_prices_combobox["values"] = tuple(prices.keys())
 playstation_prices_combobox.current(0)
 playstation_prices_combobox.bind("<FocusIn>", select_price_name)
 playstation_calculate_button = Button(playstation_frame, text='حساب', command=calculate)
-playstation_calculate_label = Label(playstation_frame, text='الحساب هنا')
+playstation_calculate_label = Label(playstation_frame, text='0.0')
 playstation_reset_button = Button(playstation_frame, text='Reset', command=reset)
+playstation_pending_label = Label(playstation_frame, text=': حساب معلق')
+playstation_pending_calculation_label = Label(playstation_frame, text='0.0')
 
 # Packing the labels, combobox, button and the container frame
 playstation_number_label.pack(side=RIGHT, padx=10, pady=5, expand=True)
@@ -401,6 +500,8 @@ playstation_prices_combobox.pack(side=RIGHT, padx=10, pady=5, expand=True)
 playstation_calculate_button.pack(side=RIGHT, padx=10, pady=5, expand=True)
 playstation_calculate_label.pack(side=RIGHT, padx=10, pady=5, expand=True)
 playstation_reset_button.pack(side=RIGHT, padx=10, pady=5, expand=True)
+playstation_pending_label.pack(side=RIGHT, padx=10, pady=5, expand=True)
+playstation_pending_calculation_label.pack(side=RIGHT, padx=10, pady=5, expand=True)
 playstation_frame.pack()
 
 # 5) A) Create the first part of pending_calculations frame by creating the necessary buttons (Add, Edit, Delete) #
@@ -411,13 +512,11 @@ pending_operations_frame = Frame(calculation_frame)
 pending_buttons_frame = Frame(pending_operations_frame)
 
 # Creating the three buttons (Add a pending operation, Edit, Delete)
-pending_add_button = Button(pending_buttons_frame, text='إضافة حساب معلق')
-pending_edit_button = Button(pending_buttons_frame, text='تعديل حساب معلق')
-pending_delete_button = Button(pending_buttons_frame, text='مسح حساب معلق')
+pending_add_button = Button(pending_buttons_frame, text='إضافة حساب معلق', command=add_to_listbox)
+pending_delete_button = Button(pending_buttons_frame, text='مسح حساب معلق', command=delete_from_listbox)
 
 # Packing the buttons and the container frame
 pending_add_button.pack(padx=80, pady=5)
-pending_edit_button.pack(padx=80, pady=5)
 pending_delete_button.pack(padx=80, pady=5)
 
 pending_buttons_frame.pack(side=RIGHT, pady=40, anchor='e')
@@ -438,7 +537,7 @@ pending_operations_listbox.configure(yscrollcommand=scrollbar.set)
 scrollbar.configure(command=pending_operations_listbox.yview)
 
 # Bind select [Note: needs a callback here passed as a second argument]
-pending_operations_listbox.bind('<<ListboxSelect>>')
+pending_operations_listbox.bind('<<ListboxSelect>>', select_listbox_item)
 
 # Packing the listbox, scrollbar and the container frame
 scrollbar.pack(side=RIGHT)
