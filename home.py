@@ -519,7 +519,7 @@ pending_delete_button = Button(pending_buttons_frame, text='مسح حساب مع
 pending_add_button.pack(padx=80, pady=5)
 pending_delete_button.pack(padx=80, pady=5)
 
-pending_buttons_frame.pack(side=RIGHT, pady=40, anchor='e')
+pending_buttons_frame.pack(side=RIGHT, pady=30, anchor='e')
 
 # 5) B) Create the second part of pending_calculations frame by creating a Listbox to hold pending operations #
 
